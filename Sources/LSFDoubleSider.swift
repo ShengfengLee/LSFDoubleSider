@@ -8,78 +8,170 @@
 
 import UIKit
 
+
+@IBDesignable
 open class LSFDoubleSider: UIControl {
     
+    //MARK: -- value
     /// default 0.0. this value will be pinned to min/max
-    open var lowerValue: Float
+    @IBInspectable open var lowerValue: Float = 0.0 {
+        didSet{
+            setLayerFrame()
+        }
+    }
     /// default 1.0. this value will be pinned to min/max
-    open var upperValue: Float
-
+    @IBInspectable open var upperValue: Float = 1.0 {
+        didSet{
+            setLayerFrame()
+        }
+    }
+    
     /// default 0.0. the current value may change if outside new min value
-    open var minimumValue: Float
+    @IBInspectable open var minimumValue: Float = 0.0 {
+        didSet{
+            setLayerFrame()
+        }
+    }
     /// default 1.0. the current value may change if outside new max value
-    open var maximumValue: Float
-
-    open var trackHeight: CGFloat = 2
+    @IBInspectable open var maximumValue: Float = 1.0 {
+        didSet{
+            setLayerFrame()
+        }
+    }
+    
+    
+    //MARK: -- track
+    @IBInspectable open var trackHeight: CGFloat = 2 {
+        didSet{
+            setLayerFrame()
+        }
+    }
     ///track渐变色(水平方向)
     open var trackColors: [UIColor]?
-    open var trackBackColor: UIColor
+    @IBInspectable open var trackBackColor: UIColor = UIColor.gray {
+        didSet{
+            setupView()
+        }
+    }
+    ///滑条渐变色数开始颜色，需要与trackEndColor同时设置才有效。 trackColors有值时该值不生效
+    @IBInspectable public var trackStartColor: UIColor? {
+        didSet{
+            setupView()
+        }
+    }
     
-    open var thumbSize: CGSize
-    ///track渐变色(垂直方向)
-    open var thumbColors: [UIColor]?
+    ///滑条渐变色数结束颜色，需要与trackStartColor同时设置才有效。 trackColors有值时该值不生效
+    @IBInspectable public var trackEndColor: UIColor? {
+        didSet{
+            setupView()
+        }
+    }
+    
+    @IBInspectable open var thumbSize: CGSize = CGSize(width: 30, height: 30) {
+           didSet{
+               setLayerFrame()
+           }
+       }
     
     
-    var trackLayer = LSFDoubleSiderTrackLayer()
-    var lowerThumbLayer = LSFDoubleSiderThumbLayer()
-    var upperThumbLayer = LSFDoubleSiderThumbLayer()
+    //MARK: --lower Thumb
+    ///lower滑块背景色
+    @IBInspectable public var lowerThumbBackColor: UIColor = UIColor.gray {
+        didSet{
+            setupView()
+        }
+    }
+    
+    ///lower渐变色(垂直方向)
+    open var lowerThumbColors: [UIColor]?
+    
+    ///lower滑块渐变色数开始颜色，需要与thumbEndColor同时设置才有效。 thumbColors有值时该值不生效
+    @IBInspectable public var lowerThumbStartColor: UIColor? {
+        didSet{
+            setupView()
+        }
+    }
+    
+    ///lower滑块渐变色数结束颜色，需要与thumbStartColor同时设置才有效。 thumbColors有值时该值不生效
+    @IBInspectable public var lowerThumbEndColor: UIColor? {
+        didSet{
+            setupView()
+        }
+    }
+    
+    //MARK: --upper Thumb
+   
+    ///upper滑块背景色
+    @IBInspectable public var upperThumbBackColor: UIColor = UIColor.gray {
+        didSet{
+            setupView()
+        }
+    }
+    
+    ///upper渐变色(垂直方向)
+    open var upperThumbColors: [UIColor]?
+       
+    
+    ///lower滑块渐变色数开始颜色，需要与upperThumbEndColor同时设置才有效。 upperThumbColors有值时该值不生效
+    @IBInspectable public var upperThumbStartColor: UIColor? {
+        didSet{
+            setupView()
+        }
+    }
+    
+    ///lower滑块渐变色数结束颜色，需要与upperThumbStartColor同时设置才有效。 upperThumbColors有值时该值不生效
+    @IBInspectable public var upperThumbEndColor: UIColor? {
+        didSet{
+            setupView()
+        }
+    }
+    
+    var trackLayer: LSFDoubleSiderTrackLayer!
+    var lowerThumbLayer: LSFDoubleSiderThumbLayer!
+    var upperThumbLayer: LSFDoubleSiderThumbLayer!
+    
     ///当前用户点击选中的thumb
     fileprivate var selectThumbLayer: LSFDoubleSiderThumbLayer?
     ///记录滑动式上一次的point
     fileprivate var previousTouchPoint: CGPoint = CGPoint.zero
     
-    init(lowerValue: Float = 0.0,
-         upperValue: Float = 1.0,
-         minimumValue: Float = 0.0,
-         maximumValue: Float = 1.0,
-         trackHeight: CGFloat = 2,
-         trackBackColor: UIColor = UIColor.gray,
-         trackColors: [UIColor]? = nil,
-         thumbColors: [UIColor]? = nil,
-         thumbSize: CGSize = CGSize(width: 30, height: 30)) {
-             self.lowerValue = lowerValue
-             self.upperValue = upperValue
+
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
         
-             self.minimumValue = minimumValue
-             self.maximumValue = maximumValue
-        
-             self.trackHeight = trackHeight
-             self.trackColors = trackColors
-             self.trackBackColor = trackBackColor
-        
-             self.thumbSize = thumbSize
-             self.thumbColors = thumbColors
-        
-        super.init(frame: CGRect.zero)
-        
-        setup()
+        initView()
     }
     
-    required public init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+    required public init(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)!
+        
+        initView()
+    }
+    override open func awakeFromNib() {
+        super.awakeFromNib()
+        initView()
     }
     
-    open func set(lower: Float? = nil, upper: Float? = nil) {
-        if let lower = lower {
-            self.lowerValue = lower
-        }
-        if let upper = upper {
-            self.upperValue = upper
-        }
-        setLayerFrame()
+    override open func layoutSubviews() {
+           super.layoutSubviews()
+           setLayerFrame()
+       }
+    
+    private func initView() {
+        if self.trackLayer != nil { return }
+        
+        trackLayer = LSFDoubleSiderTrackLayer()
+        lowerThumbLayer = LSFDoubleSiderThumbLayer()
+        upperThumbLayer = LSFDoubleSiderThumbLayer()
+           
+        self.layer.addSublayer(trackLayer)
+        self.layer.addSublayer(lowerThumbLayer)
+        self.layer.addSublayer(upperThumbLayer)
     }
     
-    open func setup() {
+    
+    private func setupView() {
         //track
         trackLayer.backgroundColor = trackBackColor.cgColor
         //渐变色
@@ -87,20 +179,31 @@ open class LSFDoubleSider: UIControl {
             let cgColors = trackColors.map { $0.cgColor }
             trackLayer.middleLayer.colors = cgColors
         }
-        self.layer.addSublayer(trackLayer)
+        else if let start = trackStartColor, let end = trackEndColor {
+            let cgColors: [CGColor] = [start.cgColor, end.cgColor]
+            trackLayer.middleLayer.colors = cgColors
+        }
         
-        //lower滑块
-        lowerThumbLayer.backgroundColor = UIColor.green.cgColor
-        self.layer.addSublayer(lowerThumbLayer)
-        
-        //upper滑块
-        upperThumbLayer.backgroundColor = UIColor.red.cgColor
-        self.layer.addSublayer(upperThumbLayer)
+
+        lowerThumbLayer.backgroundColor = lowerThumbBackColor.cgColor
+        upperThumbLayer.backgroundColor = upperThumbBackColor.cgColor
         
         //滑块渐变色
-        if let trackColors = self.trackColors {
-            let cgColors = trackColors.map { $0.cgColor }
+        if let colors = self.lowerThumbColors {
+            let cgColors = colors.map { $0.cgColor }
             lowerThumbLayer.gradientLayer.colors = cgColors
+        }
+        else if let start = lowerThumbStartColor, let end = lowerThumbEndColor {
+            let cgColors: [CGColor] = [start.cgColor, end.cgColor]
+            lowerThumbLayer.gradientLayer.colors = cgColors
+        }
+        
+        if let colors = self.upperThumbColors {
+            let cgColors = colors.map { $0.cgColor }
+            upperThumbLayer.gradientLayer.colors = cgColors
+        }
+        else if let start = upperThumbStartColor, let end = upperThumbEndColor {
+            let cgColors: [CGColor] = [start.cgColor, end.cgColor]
             upperThumbLayer.gradientLayer.colors = cgColors
         }
         
@@ -188,32 +291,39 @@ extension LSFDoubleSider {
         
         //更新lower滑块的值
         if selectThumbLayer == lowerThumbLayer {
-            lowerValue += deltaValue
+            var tempValue = lowerValue + deltaValue
             if lowerValue < minimumValue {
-                lowerValue = minimumValue
+                tempValue = minimumValue
             }
-            if lowerValue > upperValue {
-                lowerValue = upperValue
+            if tempValue > upperValue {
+                tempValue = upperValue
             }
+            //更新UI
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            lowerValue = tempValue
+            CATransaction.commit()
             print("lower value: \(lowerValue)")
         }
         //更新upper滑块的值
         else if selectThumbLayer == upperThumbLayer {
-            upperValue += deltaValue
-            if upperValue > maximumValue {
-                upperValue = maximumValue
+            var tempValue = upperValue + deltaValue
+            if tempValue > maximumValue {
+                tempValue = maximumValue
             }
-            if upperValue < lowerValue {
-                upperValue = lowerValue
+            if tempValue < lowerValue {
+                tempValue = lowerValue
             }
+            
+            //更新UI
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            upperValue = tempValue
+            CATransaction.commit()
             print("upper value: \(upperValue)")
         }
         
-        //更新UI
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        setLayerFrame()
-        CATransaction.commit()
+        
         
         return true
     }

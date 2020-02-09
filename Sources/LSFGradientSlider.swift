@@ -8,88 +8,160 @@
 
 import UIKit
 
-
+@IBDesignable
 open class LSFGradientSlider: UIControl {
     
-    /// default 0.0. this value will be pinned to min/max
-    open var value: Float
-
-    /// default 0.0. the current value may change if outside new min value
-    open var minimumValue: Float
-    /// default 1.0. the current value may change if outside new max value
-    open var maximumValue: Float
-
-    open var trackHeight: CGFloat = 2
-    ///track渐变色(水平方向)
-    open var trackColors: [UIColor]?
-    open var trackBackColor: UIColor
+    ///当前选中的值
+    @IBInspectable public var value: Float = 0.0 {
+        didSet{
+            setLayerFrame()
+        }
+    }
     
-    open var thumbSize: CGSize
-    ///track渐变色(垂直方向)
-    open var thumbColors: [UIColor]?
+    ///最小值
+    @IBInspectable public var minimumValue: Float = 0.0 {
+        didSet{
+            setLayerFrame()
+        }
+    }
+    
+    ///最大值
+    @IBInspectable public var maximumValue: Float = 1.0 {
+        didSet{
+            setLayerFrame()
+        }
+    }
+    
+    ///滑条的高度
+    @IBInspectable public var trackHeight: CGFloat = 2 {
+        didSet{
+            setLayerFrame()
+        }
+    }
+    
+    ///滑条渐变色数组
+    @IBInspectable public var trackColors: [UIColor]? {
+        didSet{
+            setupView()
+        }
+    }
+    
+    ///滑条渐变色数开始颜色，需要与trackEndColor同时设置才有效。 trackColors有值时该值不生效
+    @IBInspectable public var trackStartColor: UIColor? {
+        didSet{
+            setupView()
+        }
+    }
+    
+    ///滑条渐变色数结束颜色，需要与trackStartColor同时设置才有效。 trackColors有值时该值不生效
+    @IBInspectable public var trackEndColor: UIColor? {
+        didSet{
+            setupView()
+        }
+    }
+    
+    ///滑条的背景色
+    @IBInspectable public var trackBackColor: UIColor = UIColor.gray {
+        didSet{
+            trackLayer.backgroundColor = trackBackColor.cgColor
+        }
+    }
+    
+    ///滑块的大小
+    @IBInspectable public var thumbSize: CGSize = CGSize(width: 30, height: 30) {
+        didSet{
+            setLayerFrame()
+        }
+    }
+    
+    ///滑块渐变色
+    public var thumbColors: [UIColor]? {
+        didSet{
+            setupView()
+        }
+    }
+    
+    ///滑块渐变色数开始颜色，需要与thumbEndColor同时设置才有效。 thumbColors有值时该值不生效
+    @IBInspectable public var thumbStartColor: UIColor? {
+        didSet{
+            setupView()
+        }
+    }
+    
+    ///滑块渐变色数结束颜色，需要与thumbStartColor同时设置才有效。 thumbColors有值时该值不生效
+    @IBInspectable public var thumbEndColor: UIColor? {
+        didSet{
+            setupView()
+        }
+    }
     
     
-    var trackLayer = LSFDoubleSiderTrackLayer()
-    var thumbLayer = LSFDoubleSiderThumbLayer()
+    var trackLayer: LSFDoubleSiderTrackLayer!
+    var thumbLayer: LSFDoubleSiderThumbLayer!
+    
     ///记录滑动式上一次的point
     fileprivate var previousTouchPoint: CGPoint = CGPoint.zero
     
-    init(value: Float = 0.0,
-         minimumValue: Float = 0.0,
-         maximumValue: Float = 1.0,
-         trackHeight: CGFloat = 2,
-         trackBackColor: UIColor = UIColor.gray,
-         trackColors: [UIColor]? = nil,
-         thumbColors: [UIColor]? = nil,
-         thumbSize: CGSize = CGSize(width: 30, height: 30)) {
-             self.value = value
+    override init(frame: CGRect) {
+        super.init(frame: frame)
         
-             self.minimumValue = minimumValue
-             self.maximumValue = maximumValue
-        
-             self.trackHeight = trackHeight
-             self.trackColors = trackColors
-             self.trackBackColor = trackBackColor
-        
-             self.thumbSize = thumbSize
-             self.thumbColors = thumbColors
-        
-        super.init(frame: CGRect.zero)
-        
-        setup()
+        initView()
     }
     
-    required public init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+    required public init(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)!
+        
+        initView()
     }
     
-    open func set(value: Float) {
-        self.value = value
+    override open func awakeFromNib() {
+        super.awakeFromNib()
+        initView()
+    }
+    
+    func initView() {
+        if self.trackLayer != nil { return }
+        
+        //track
+        trackLayer = LSFDoubleSiderTrackLayer()
+        self.layer.addSublayer(trackLayer)
+        
+        //滑块
+        thumbLayer = LSFDoubleSiderThumbLayer()
+        self.layer.addSublayer(thumbLayer)
+    }
+    
+    override open func layoutSubviews() {
+        super.layoutSubviews()
         setLayerFrame()
     }
     
-    open func setup() {
-        //track
-        trackLayer.backgroundColor = trackBackColor.cgColor
+    open func setupView() {
+//        trackLayer.backgroundColor = trackBackColor.cgColor
         //渐变色
         if let trackColors = self.trackColors {
             let cgColors = trackColors.map { $0.cgColor }
             trackLayer.middleLayer.colors = cgColors
         }
-        self.layer.addSublayer(trackLayer)
+        else if let start = trackStartColor, let end = trackEndColor {
+            let cgColors: [CGColor] = [start.cgColor, end.cgColor]
+            trackLayer.middleLayer.colors = cgColors
+        }
         
         //滑块
         thumbLayer.backgroundColor = UIColor.green.cgColor
-        self.layer.addSublayer(thumbLayer)
         //滑块渐变色
         if let trackColors = self.trackColors {
             let cgColors = trackColors.map { $0.cgColor }
             thumbLayer.gradientLayer.colors = cgColors
         }
+        else if let start = thumbStartColor, let end = thumbEndColor {
+            let cgColors: [CGColor] = [start.cgColor, end.cgColor]
+            thumbLayer.gradientLayer.colors = cgColors
+        }
         
         setLayerFrame()
     }
-    
     
     private func setLayerFrame() {
         trackLayer.frame = CGRect(x: thumbSize.width / 2,
@@ -121,7 +193,6 @@ open class LSFGradientSlider: UIControl {
         let position = trackWidth * CGFloat(delta) + thumbSize.width / 2
         return position
     }
-    
 }
 
 //MARK: Touch事件
@@ -145,21 +216,21 @@ extension LSFGradientSlider {
         previousTouchPoint = point
         
         //更新滑块的值
-        value += deltaValue
-        if value < minimumValue {
-            value = minimumValue
+        var tempValue = value + deltaValue
+        if tempValue < minimumValue {
+            tempValue = minimumValue
         }
-        if value > maximumValue {
-            value = maximumValue
+        if tempValue > maximumValue {
+            tempValue = maximumValue
         }
-        print("value: \(value)")
         
         //更新UI
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        setLayerFrame()
+        self.value = tempValue
         CATransaction.commit()
         
+        print("value: \(value)")
         return true
     }
     
