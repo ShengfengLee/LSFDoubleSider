@@ -1,19 +1,18 @@
 //
-//  LSFDoubleSider.swift
+//  LSFGradientSlider.swift
 //  LSFDoubleSider_Example
 //
-//  Created by 李胜锋 on 2020/2/8.
+//  Created by 李胜锋 on 2020/2/9.
 //  Copyright © 2020 李胜锋. All rights reserved.
 //
 
 import UIKit
 
-open class LSFDoubleSider: UIControl {
+
+open class LSFGradientSlider: UIControl {
     
     /// default 0.0. this value will be pinned to min/max
-    open var lowerValue: Float
-    /// default 1.0. this value will be pinned to min/max
-    open var upperValue: Float
+    open var value: Float
 
     /// default 0.0. the current value may change if outside new min value
     open var minimumValue: Float
@@ -31,15 +30,11 @@ open class LSFDoubleSider: UIControl {
     
     
     var trackLayer = LSFDoubleSiderTrackLayer()
-    var lowerThumbLayer = LSFDoubleSiderThumbLayer()
-    var upperThumbLayer = LSFDoubleSiderThumbLayer()
-    ///当前用户点击选中的thumb
-    fileprivate var selectThumbLayer: LSFDoubleSiderThumbLayer?
+    var thumbLayer = LSFDoubleSiderThumbLayer()
     ///记录滑动式上一次的point
     fileprivate var previousTouchPoint: CGPoint = CGPoint.zero
     
-    init(lowerValue: Float = 0.0,
-         upperValue: Float = 1.0,
+    init(value: Float = 0.0,
          minimumValue: Float = 0.0,
          maximumValue: Float = 1.0,
          trackHeight: CGFloat = 2,
@@ -47,8 +42,7 @@ open class LSFDoubleSider: UIControl {
          trackColors: [UIColor]? = nil,
          thumbColors: [UIColor]? = nil,
          thumbSize: CGSize = CGSize(width: 30, height: 30)) {
-             self.lowerValue = lowerValue
-             self.upperValue = upperValue
+             self.value = value
         
              self.minimumValue = minimumValue
              self.maximumValue = maximumValue
@@ -69,13 +63,8 @@ open class LSFDoubleSider: UIControl {
         fatalError("init(coder:) has not been implemented")
     }
     
-    open func set(lower: Float? = nil, upper: Float? = nil) {
-        if let lower = lower {
-            self.lowerValue = lower
-        }
-        if let upper = upper {
-            self.upperValue = upper
-        }
+    open func set(value: Float) {
+        self.value = value
         setLayerFrame()
     }
     
@@ -89,19 +78,13 @@ open class LSFDoubleSider: UIControl {
         }
         self.layer.addSublayer(trackLayer)
         
-        //lower滑块
-        lowerThumbLayer.backgroundColor = UIColor.green.cgColor
-        self.layer.addSublayer(lowerThumbLayer)
-        
-        //upper滑块
-        upperThumbLayer.backgroundColor = UIColor.red.cgColor
-        self.layer.addSublayer(upperThumbLayer)
-        
+        //滑块
+        thumbLayer.backgroundColor = UIColor.green.cgColor
+        self.layer.addSublayer(thumbLayer)
         //滑块渐变色
         if let trackColors = self.trackColors {
             let cgColors = trackColors.map { $0.cgColor }
-            lowerThumbLayer.gradientLayer.colors = cgColors
-            upperThumbLayer.gradientLayer.colors = cgColors
+            thumbLayer.gradientLayer.colors = cgColors
         }
         
         setLayerFrame()
@@ -115,25 +98,18 @@ open class LSFDoubleSider: UIControl {
                                   height: trackHeight)
         trackLayer.setNeedsDisplay()
         
-        //计算lower滑块的位置
-        let lowerCenterX = positionFor(value: lowerValue)
-        lowerThumbLayer.frame = CGRect(x: lowerCenterX - thumbSize.width / 2,
-                                       y: (self.frame.size.height - thumbSize.height) / 2,
-                                       width: thumbSize.width,
-                                       height: thumbSize.height)
-        lowerThumbLayer.setNeedsDisplay()
-        
-        //计算upper滑块的位置
-        let upperCenterX = positionFor(value: upperValue)
-        upperThumbLayer.frame = CGRect(x: upperCenterX - thumbSize.width / 2,
-                                       y: (self.frame.size.height - thumbSize.height) / 2,
-                                       width: thumbSize.width,
-                                       height: thumbSize.height)
-        upperThumbLayer.setNeedsDisplay()
+        //计算滑块的位置
+        let centerX = positionFor(value: value)
+        thumbLayer.frame = CGRect(x: centerX - thumbSize.width / 2,
+                                  y: (self.frame.size.height - thumbSize.height) / 2,
+                                  width: thumbSize.width,
+                                  height: thumbSize.height)
+        thumbLayer.setNeedsDisplay()
         
         
-        trackLayer.lowerCenterX = lowerCenterX
-        trackLayer.upperCenterX = upperCenterX
+        
+        trackLayer.lowerCenterX = 0
+        trackLayer.upperCenterX = centerX
         
     }
     
@@ -149,33 +125,15 @@ open class LSFDoubleSider: UIControl {
 }
 
 //MARK: Touch事件
-extension LSFDoubleSider {
+extension LSFGradientSlider {
     open override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
         previousTouchPoint = touch.location(in: self)
         
-        //如果连个滑块重叠的时候，优先响应上一次选中的滑块
-        if let layer = selectThumbLayer, layer.frame.contains(previousTouchPoint) {
-            layer.setNeedsDisplay()
+        //选中滑块
+        if thumbLayer.frame.contains(previousTouchPoint) {
+            thumbLayer.setNeedsDisplay()
             return true
         }
-        
-        //选中lower
-        if lowerThumbLayer.frame.contains(previousTouchPoint) {
-            selectThumbLayer = lowerThumbLayer
-            lowerThumbLayer.zPosition = 100
-            upperThumbLayer.zPosition = 50
-            lowerThumbLayer.setNeedsDisplay()
-            return true
-        }
-        //选中upper
-        else if upperThumbLayer.frame.contains(previousTouchPoint) {
-            selectThumbLayer = upperThumbLayer
-            upperThumbLayer.zPosition = 100
-            lowerThumbLayer.zPosition = 50
-            upperThumbLayer.setNeedsDisplay()
-            return true
-        }
-        
         return false
     }
     
@@ -186,28 +144,15 @@ extension LSFDoubleSider {
         let deltaValue = (maximumValue - minimumValue) * Float(delta) / Float(trackLayer.frame.size.width)
         previousTouchPoint = point
         
-        //更新lower滑块的值
-        if selectThumbLayer == lowerThumbLayer {
-            lowerValue += deltaValue
-            if lowerValue < minimumValue {
-                lowerValue = minimumValue
-            }
-            if lowerValue > upperValue {
-                lowerValue = upperValue
-            }
-            print("lower value: \(lowerValue)")
+        //更新滑块的值
+        value += deltaValue
+        if value < minimumValue {
+            value = minimumValue
         }
-        //更新upper滑块的值
-        else if selectThumbLayer == upperThumbLayer {
-            upperValue += deltaValue
-            if upperValue > maximumValue {
-                upperValue = maximumValue
-            }
-            if upperValue < lowerValue {
-                upperValue = lowerValue
-            }
-            print("upper value: \(upperValue)")
+        if value > maximumValue {
+            value = maximumValue
         }
+        print("value: \(value)")
         
         //更新UI
         CATransaction.begin()
@@ -219,8 +164,7 @@ extension LSFDoubleSider {
     }
     
     open override func endTracking(_ touch: UITouch?, with event: UIEvent?) {
-        lowerThumbLayer.setNeedsDisplay()
-        upperThumbLayer.setNeedsDisplay()
+        thumbLayer.setNeedsDisplay()
     }
 }
 
