@@ -228,6 +228,7 @@ extension LSFGradientSlider {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         self.value = tempValue
+        sendActions(for: UIControl.Event.valueChanged)
         CATransaction.commit()
         
         print("value: \(value)")

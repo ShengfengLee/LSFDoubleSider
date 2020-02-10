@@ -302,6 +302,7 @@ extension LSFDoubleSider {
             CATransaction.begin()
             CATransaction.setDisableActions(true)
             lowerValue = tempValue
+            sendActions(for: UIControl.Event.valueChanged)
             CATransaction.commit()
             print("lower value: \(lowerValue)")
         }
@@ -319,6 +320,7 @@ extension LSFDoubleSider {
             CATransaction.begin()
             CATransaction.setDisableActions(true)
             upperValue = tempValue
+            sendActions(for: UIControl.Event.valueChanged)
             CATransaction.commit()
             print("upper value: \(upperValue)")
         }
